@@ -48,6 +48,7 @@ require (
 	github.com/sahilm/fuzzy v0.1.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.3.0
+	github.com/tidwall/pretty v1.0.0
 	github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1 // indirect
 	golang.org/x/text v0.3.2
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect

@@ -14,6 +14,7 @@ import (
 	"github.com/derailed/tview"
 	"github.com/gdamore/tcell"
 	"github.com/rs/zerolog/log"
+	"github.com/tidwall/pretty"
 )
 
 type (
@@ -121,7 +122,8 @@ func (v *logView) keyboard(evt *tcell.EventKey) *tcell.EventKey {
 }
 
 func (v *logView) log(lines string) {
-	fmt.Fprintln(v.ansiWriter, tview.Escape(lines))
+	lines = string(pretty.Pretty([]byte(lines)))
+	fmt.Fprintln(v.ansiWriter, lines)
 	log.Debug().Msgf("LOG LINES %d", v.logs.GetLineCount())
 }
 
