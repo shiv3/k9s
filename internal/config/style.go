@@ -14,10 +14,17 @@ var (
 	K9sStylesFile = filepath.Join(K9sHome, "skin.yml")
 )
 
+// StyleListener represents a skin's listener.
+type StyleListener interface {
+	// StylesChanged notifies listener the skin changed.
+	StylesChanged(*Styles)
+}
+
 type (
 	// Styles tracks K9s styling options.
 	Styles struct {
-		K9s Style `yaml:"k9s"`
+		K9s       Style `yaml:"k9s"`
+		listeners []StyleListener
 	}
 
 	// Body tracks body styles.
@@ -132,7 +139,7 @@ func newStyle() Style {
 		Body:  newBody(),
 		Frame: newFrame(),
 		Info:  newInfo(),
-		Table: newTable(),
+		Table: newGetTable(),
 		Views: newViews(),
 	}
 }
@@ -211,12 +218,12 @@ func newInfo() Info {
 }
 
 // NewTable returns a new table style.
-func newTable() Table {
+func newGetTable() Table {
 	return Table{
 		FgColor:     "aqua",
 		BgColor:     "black",
 		CursorColor: "aqua",
-		MarkColor:   "darkgoldenrod",
+		MarkColor:   "palegreen",
 		Header:      newTableHeader(),
 	}
 }
@@ -257,9 +264,10 @@ func newMenu() Menu {
 }
 
 // NewStyles creates a new default config.
-func NewStyles(path string) (*Styles, error) {
-	s := &Styles{K9s: newStyle()}
-	return s, s.load(path)
+func NewStyles() *Styles {
+	return &Styles{
+		K9s: newStyle(),
+	}
 }
 
 // FgColor returns the foreground color.
@@ -270,6 +278,32 @@ func (s *Styles) FgColor() tcell.Color {
 // BgColor returns the background color.
 func (s *Styles) BgColor() tcell.Color {
 	return AsColor(s.Body().BgColor)
+}
+
+// AddListener registers a new listener.
+func (s *Styles) AddListener(l StyleListener) {
+	s.listeners = append(s.listeners, l)
+}
+
+// RemoveListener unregister a listener.
+func (s *Styles) RemoveListener(l StyleListener) {
+	victim := -1
+	for i, lis := range s.listeners {
+		if lis == l {
+			victim = i
+			break
+		}
+	}
+	if victim == -1 {
+		return
+	}
+	s.listeners = append(s.listeners[:victim], s.listeners[victim+1:]...)
+}
+
+func (s *Styles) fireStylesChanged() {
+	for _, list := range s.listeners {
+		list.StylesChanged(s)
+	}
 }
 
 // Body returns body styles.
@@ -292,8 +326,8 @@ func (s *Styles) Title() Title {
 	return s.Frame().Title
 }
 
-// Table returns table styles.
-func (s *Styles) Table() Table {
+// GetTable returns table styles.
+func (s *Styles) GetTable() Table {
 	return s.K9s.Table
 }
 
@@ -303,7 +337,7 @@ func (s *Styles) Views() Views {
 }
 
 // Load K9s configuration from file
-func (s *Styles) load(path string) error {
+func (s *Styles) Load(path string) error {
 	f, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
@@ -312,6 +346,7 @@ func (s *Styles) load(path string) error {
 	if err := yaml.Unmarshal(f, s); err != nil {
 		return err
 	}
+	s.fireStylesChanged()
 
 	return nil
 }
@@ -331,5 +366,5 @@ func AsColor(c string) tcell.Color {
 		return color
 	}
 
-	return tcell.ColorPink
+	return tcell.GetColor(c)
 }
